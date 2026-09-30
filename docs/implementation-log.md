@@ -36,9 +36,27 @@ cmake -S tests/integration/status_only_red -B out/red-status-only-gcc -G Ninja -
 
 ## 待完成与适用限制
 
-- 共享质量 runner、CI 配置及最终门禁由主任务接入，尚未在此记录为通过。
+- 共享质量 runner 已完成本地验收，见下节；CI 配置已提供，远端工作流尚未执行。
 - 未执行 Linux sanitizer、ARM 链接或真实硬件验证；本组件不单独声称满足整机资源预算。
 - 未创建远端、推送或发布 tag，未修改 memory/containers/link 等消费者。
 - 来源许可证仍需所有者确认，不能声明已经具备正式公开发布条件。
 
-????? pre-commit ?????????????? `python -m pre_commit run --all-files`???/??? Nexus C/C++ ???????`git diff --cached --check` ????????????????????????? CI ????????????? `XGEN_QUALITY_REPOSITORY` ?????????
+## 共享质量工具验收（2026-10-01）
+
+组件现在调用显式安装的 xgen-quality 0.1.0，源码固定为 `9c957d406d935d27959babe7f01172151f9d26c1`。检查逻辑、工具策略和回归由该独立仓库维护；本仓只保留模块配置与薄入口。最终 wheel 的 SHA256 为 `7a1946e9256d12e49365f064fd1fc44533d58e62addccc6b91268e2d657443f7`；声明的源码提交和实际 wheel 来源分别记录，不能相互代替。
+
+Windows 本地实际完成 text、clang-format 19.1.5、Doxygen 1.16.0、cppcheck 2.21.0、clang-tidy 19.1.0、CTest 与 gcovr 8.3 检查，全部通过。原始结果在 `out/reports/quality-*.json`；工具自身的 66 项 Python 回归在 xgen-quality 执行，组件不再复制这套测试。实现阶段的报告保留当时源码和安装身份；最终 wheel 更新了模板与元数据，运行 Python 和 policy 内容已逐字节核对为受测版本。
+
+已安装本地 pre-commit 钩子；暂存完整自有文件后运行 `python -m pre_commit run --all-files`，文本/配置与 Nexus C/C++ 格式两项通过，`git diff --cached --check` 通过。三个消费者固定到同一工具提交。远端 CI 仍需真实可读取的工具仓库及 `XGEN_QUALITY_REPOSITORY` 变量，当前未执行。
+
+共享 runner 运行最终 45/45 CTest 通过；自有生产对象的行、函数与分支覆盖率均为 100%。独立虚拟环境的固定依赖安装及 pip check 通过。
+
+## 干净克隆与共同安装验证
+
+在包含空格的新目录中，分别从 CRC `358659cfdf85718d2472dd9aa43bc5cf704d91c9`、bytes `9ce17afa3a572e9aa9db9a2f4e8f4b3802b6326f`、status `d60c8e02f0720b03f30d7ca725bd8834ccf7add3` 创建 `--no-hardlinks` 干净本地克隆，不复制开发缓存或 out。使用 GCC 13.2，保持 tests 默认 OFF，将 CXX 指向不存在路径后，三个纯 C Release 均完成配置、构建和安装。
+
+共同安装前缀新增 CRC 10、bytes 8、status 9 个文件，共 27 个；安装清单没有交叉路径，每次安装前已有文件的 SHA256 均不变。三个生产工程与消费者的缓存均无 CXX/GoogleTest 条目。
+
+真实消费者最小路径只导入 `xgcrc::crc8`、`xgb::bytes`、`xgs::status`，符号检查确认可执行文件不含 CRC16、status strings 和 GoogleTest；另一路径显式选择 strings。两个消费者的 CTest **2/2 通过**。此结果是基础库组合验证，不代表产品、ARM 或 Boot 验收。
+
+可复现脚本和含 39 条命令、36 个检查、源提交及安装摘要的完整报告保存在本工作区 CRC 的 `out/verify_shared_install.py` 与 `out/reports/shared-install.json`。这些构建和检查产物由 out 排除在源码之外；后续提交仅补充和修正文档，不改已验证的生产实现。
