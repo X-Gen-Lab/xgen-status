@@ -45,4 +45,5 @@ const char* xgs_status_string(xgs_status_t status);
 #ifdef __cplusplus
 }
 #endif
+
 #endif
